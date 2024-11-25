@@ -16,6 +16,7 @@ jobs:
       - name: Create application.yml from Secrets
         run: |
           echo "${{ secrets.APPLICATION }}" > ./src/main/resources/application.yml
+          echo "${{ secrets.APPLICATION_SECRET }}" > ./src/main/resources/application-secret.yml
 
       # 3. Docker 로그인
       - name: Log in to Docker Hub
