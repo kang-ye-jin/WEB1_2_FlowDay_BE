@@ -1,4 +1,4 @@
-name: CI/CD
+name: CI/CD with Docker
 
 on:
   push:
@@ -9,42 +9,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. 코드를 체크아웃
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-java@v3
+      # 2. Docker를 설정하고 로그인
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - run: touch ./src/main/resources/application.yml
-
-      - run: echo "${{secrets.APPLICATION}}" > ./src/main/resources/application.yml
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: application.yml
-          path: ./src/main/resources/application.yml
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build with Gradle
-        run: ./gradlew clean build
-
-      - name: Get current time
-        uses: josStorer/get-current-time@v2
-        id: current-time
-        with:
-          format: YYYY-MM-DDTHH-mm-ss
-          utcOffset: "+09:00"
-
-      # 배포용 패키지 경로 설정
-      - name: Set artifact path
+      # 3. Docker 이미지 빌드
+      - name: Build Docker image
         run: |
-          artifact=$(ls ./build/libs/*.jar | head -n 1)
-          echo "artifact=$artifact" >> $GITHUB_ENV
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/flowday:latest .
 
-      # 빈스토크 배포
+      # 4. Docker Hub에 이미지 푸시
+      - name: Push Docker image to Docker Hub
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/flowday:latest
+
+      # 5. Elastic Beanstalk 배포
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v20
         with:
@@ -52,6 +37,25 @@ jobs:
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           application_name: flowday
           environment_name: Flowday-env
-          version_label: github-action-${{ steps.current-time.outputs.time }}
+          version_label: docker-${{ github.run_id }}
           region: ap-northeast-2
-          deployment_package: ${{ env.artifact }}
+          deployment_package: Dockerrun.aws.json
+
+  # `Dockerrun.aws.json` 생성 작업
+  generate_dockerrun:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Dockerrun.aws.json
+        run: |
+          echo '{
+            "AWSEBDockerrunVersion": "1",
+            "Image": {
+              "Name": "${{ secrets.DOCKER_USERNAME }}/flowday:latest",
+              "Update": "true"
+            },
+            "Ports": [
+              {
+                "ContainerPort": "8080"
+              }
+            ]
+          }' > Dockerrun.aws.json
