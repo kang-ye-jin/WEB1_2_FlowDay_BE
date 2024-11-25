@@ -1,61 +1,57 @@
-name: CI/CD with Docker
+name: CI/CD
 
 on:
   push:
-    branches: [cicd-test]
+    branches: [ cicd-test ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Code checkout
       - uses: actions/checkout@v3
 
-      # 2. application.yml 파일을 GitHub Secrets에서 가져와서 덮어쓰기
-      - name: Update application.yml from Secrets
-        run: |
-          echo "${{ secrets.APPLICATION }}" > ./src/main/resources/application.yml
-
-      # 3. application-secret.yml 파일 생성 (프로젝트에 없으므로 새로 생성)
-      - name: Create application-secret.yml from Secrets
-        run: |
-          echo "${{ secrets.APPLICATION_SECRET }}" > ./src/main/resources/application-secret.yml
-
-      # 4. Docker 로그인
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+      - uses: actions/setup-java@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          distribution: 'zulu'
+          java-version: '17'
 
-      # 5. Set up Buildx with containerd driver
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v2
+      # application.yml 파일 생성
+      - run: touch ./src/main/resources/application.yml
+      - run: echo "${{ secrets.APPLICATION }}" > ./src/main/resources/application.yml
+
+      # application-secret.yml 파일 생성
+      - run: touch ./src/main/resources/application-secret.yml
+      - run: echo "${{ secrets.APPLICATION_SECRET }}" > ./src/main/resources/application-secret.yml
+
+      # 생성된 파일들을 아티팩트로 업로드
+      - uses: actions/upload-artifact@v3
         with:
-          use-containerd: true
+          name: application-files
+          path: |
+            ./src/main/resources/application.yml
+            ./src/main/resources/application-secret.yml
 
-      # 6. Docker 이미지 빌드 및 푸시
-      - name: Build and Push Docker image
-        uses: docker/build-push-action@v3
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build
+
+      - name: Get current time
+        uses: josStorer/get-current-time@v2
+        id: current-time
         with:
-          context: .
-          file: Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/flowday:latest
-            ${{ secrets.DOCKER_USERNAME }}/flowday:${{ github.sha }}
-          labels: "org.opencontainers.image.title=flowday"
+          format: YYYY-MM-DDTHH-mm-ss
+          utcOffset: "+09:00"
 
-      # 7. 배포 패키지 생성 및 압축
-      - name: Create deployment package
+      # 배포용 패키지 경로 설정
+      - name: Set artifact path
         run: |
-          mkdir -p deployment-package
-          cp Dockerrun.aws.json Dockerfile ./deployment-package
-          zip -r deployment-package.zip ./deployment-package
+          artifact=$(ls ./build/libs/*.jar | head -n 1)
+          echo "artifact=$artifact" >> $GITHUB_ENV
 
-      # 8. Elastic Beanstalk 배포
+      # 빈스토크 배포
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v20
         with:
@@ -63,6 +59,6 @@ jobs:
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           application_name: flowday
           environment_name: Flowday-env
-          version_label: docker-${{ github.run_id }}
+          version_label: github-action-${{ steps.current-time.outputs.time }}
           region: ap-northeast-2
-          deployment_package: ./deployment-package.zip
+          deployment_package: ${{ env.artifact }}
