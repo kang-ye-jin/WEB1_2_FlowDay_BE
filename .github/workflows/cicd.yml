@@ -24,38 +24,21 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 4. Docker 이미지 빌드
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/flowday:latest .
+      #4. Docker 이미지 빌드 및 푸시
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: api.Dockerfile
+          platforms: linux/amd64
+          push: true  # 이미지를 Docker Hub에 푸시
+          tags: ${{ secrets.DOCKER_USERNAME }}/flowday:latest
+          labels: "org.opencontainers.image.title=flowday"
 
-      # 5. Dockerrun.aws.json 생성
-      - name: Generate Dockerrun.aws.json
-        run: |
-          echo '{
-            "AWSEBDockerrunVersion": "1",
-            "Image": {
-              "Name": "${{ secrets.DOCKER_USERNAME }}/flowday:latest",
-              "Update": "true"
-            },
-            "Ports": [
-              {
-                "ContainerPort": "5000"
-              }
-            ]
-          }' > Dockerrun.aws.json
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      # 6. 배포 패키지로 zip 파일 생성
-      - name: Create deployment zip package
-        run: |
-          zip -r docker-deploy.zip Dockerrun.aws.json
-
-      # 7. Docker Hub에 이미지 푸시
-      - name: Push Docker image to Docker Hub
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/flowday:latest
-
-      # 8. Elastic Beanstalk 배포
+      # 5. Elastic Beanstalk 배포
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v20
         with:
@@ -65,4 +48,4 @@ jobs:
           environment_name: Flowday-env
           version_label: docker-${{ github.run_id }}
           region: ap-northeast-2
-          deployment_package: docker-deploy.zip
+          deployment_package: docker-compose.yml
