@@ -39,3 +39,4 @@ out/
 ## dev DB ##
 flowday_dev.mv.db
 flowday_dev.trace.db
+/src/main/resources/application-secret.yml
