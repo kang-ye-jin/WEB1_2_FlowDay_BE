@@ -17,19 +17,30 @@ jobs:
         run: |
           echo "${{ secrets.APPLICATION }}" > ./src/main/resources/application.yml
 
-      # 3. Docker를 설정하고 로그인
+      # 3. Docker 파일을 다운로드하고 압축 해제
+      - name: Download docker.zip from S3 and unzip
+        run: |
+          aws s3 cp s3://flowday/docker.zip ./docker.zip
+          unzip docker.zip -d ./docker
+
+      # 4. manifest.yml 파일을 사용하여 필요한 설정 확인
+      - name: Check manifest.yml
+        run: |
+          cat ./resources/environments/e-8ghjmvenjh/runtime/versions/manifest.yml
+
+      # 5. Docker를 설정하고 로그인
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 4. Docker 이미지 빌드
+      # 6. Docker 이미지 빌드
       - name: Build Docker image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/flowday:latest .
 
-      # 5. Dockerrun.aws.json 생성
+      # 7. Dockerrun.aws.json 생성
       - name: Generate Dockerrun.aws.json
         run: |
           echo '{
@@ -45,12 +56,12 @@ jobs:
             ]
           }' > Dockerrun.aws.json
 
-      # 6. Docker Hub에 이미지 푸시
+      # 8. Docker Hub에 이미지 푸시
       - name: Push Docker image to Docker Hub
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/flowday:latest
 
-      # 7. Elastic Beanstalk 배포
+      # 9. Elastic Beanstalk 배포
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v20
         with:
