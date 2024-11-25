@@ -53,4 +53,4 @@ jobs:
           environment_name: Flowday-env
           version_label: docker-${{ github.run_id }}
           region: ap-northeast-2
-          deployment_package: docker-compose.yml
+          deployment_package: ${{ secrets.DOCKER_USERNAME }}/flowday:latest
