@@ -53,4 +53,4 @@ jobs:
           environment_name: Flowday-env
           version_label: docker-${{ github.run_id }}
           region: ap-northeast-2
-          deployment_package: ${{ secrets.DOCKER_USERNAME }}/flowday:latest
+          deployment_package: ./Dockerrun.aws.json  # Dockerrun.aws.json 파일 경로
