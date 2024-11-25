@@ -1,7 +1,7 @@
 {
   "AWSEBDockerrunVersion": "1",
   "Image": {
-    "Name": "${{ secrets.DOCKER_USERNAME }}/flowday:latest",
+    "Name": "yejin331/flowday:latest",
     "Update": "true"
   },
   "Ports": [
