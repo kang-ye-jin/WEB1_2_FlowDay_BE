@@ -60,7 +60,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers(
-                                "**"
+                                "/h2-console/**"
                         ).disable());
 
         http
@@ -73,11 +73,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 PathRequest.toStaticResources().atCommonLocations(),
-                                new AntPathRequestMatcher("**")
+                                new AntPathRequestMatcher("/h2-console/**")
                         )
                         .permitAll()
                         .requestMatchers(
-                                "**"
+                                "/api/v1/members/login",
+                                "/api/v1/members",
+                                "/oauth2/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
                         ).permitAll()
                         .anyRequest().hasRole("USER"));
 
@@ -104,4 +108,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-

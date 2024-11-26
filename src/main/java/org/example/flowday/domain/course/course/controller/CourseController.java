@@ -20,7 +20,7 @@ public class CourseController {
     private final CourseService courseService;
 
     // 코스 생성
-    @Operation(summary = "게시글 이미지 등록", description = "게시글에 여러 이미지를 등록할 때 사용하는 API")
+    @Operation(summary = "코스 생성", description = "코스를 생성할 때 사용하는 API")
     @PostMapping
     public ResponseEntity<CourseResDTO> createCourse(@RequestBody CourseReqDTO courseReqDTO) {
         return ResponseEntity.ok(courseService.saveCourse(courseReqDTO));
