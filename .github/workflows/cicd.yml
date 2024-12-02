@@ -2,7 +2,7 @@ name: CI/CD
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ cicd-test ]
 
 jobs:
   build:
@@ -57,8 +57,8 @@ jobs:
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: flowday
-          environment_name: Flowday-env
+          application_name: Flowday-web
+          environment_name: Flowday-web-env
           version_label: github-action-${{ steps.current-time.outputs.time }}
           region: ap-northeast-2
           deployment_package: ${{ env.artifact }}
