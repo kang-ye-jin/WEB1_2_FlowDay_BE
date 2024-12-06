@@ -51,7 +51,7 @@ jobs:
           artifact=$(ls ./build/libs/*.jar | head -n 1)
           echo "artifact=$artifact" >> $GITHUB_ENV
 
-      # 새 환경에 배포
+      # 그린 환경에 배포
       - name: Deploy to Green Environment
         uses: einaregilsson/beanstalk-deploy@v20
         with:
@@ -63,3 +63,15 @@ jobs:
           region: ap-northeast-2
           deployment_package: ${{ env.artifact }}
 
+      # 블루 환경에 배포
+      - name: Deploy to Blue Environment
+        uses: einaregilsson/beanstalk-deploy@v20
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: flow_day
+          environment_name: Flowday-env-1
+          version_label: github-action-${{ steps.current-time.outputs.time }}
+          region: ap-northeast-2
+          deployment_package: ${{ env.artifact }}
+          use_existing_version_if_available: true
